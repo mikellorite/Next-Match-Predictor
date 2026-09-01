@@ -1,6 +1,6 @@
 """
 api.py — Interfaz Streamlit para Next Match Predictor (Matchday IQ).
-Incluye botón visible de re-entrenamiento del modelo para actualizar con datos recientes.
+Diseño optimizado sin cortes en la parte superior y con etiquetas sencillas e intuitivas.
 """
 import streamlit as st
 import pandas as pd
@@ -20,10 +20,10 @@ st.set_page_config(
     page_title="MATCHDAY IQ | Premier League Match Predictor",
     page_icon="⚽",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# ── Estilos CSS globales ────────────────────────────────────────────────────
+# ── Estilos CSS globales (Corregidos para evitar cortes superiores) ──────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -32,10 +32,23 @@ html, body, [class*="css"] {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+/* Espaciado superior ajustado para evitar que se corte con el header nativo de Streamlit */
 .block-container {
-    padding-top: 1rem;
-    padding-bottom: 2rem;
+    padding-top: 2.5rem !important;
+    padding-bottom: 2rem !important;
     max-width: 1250px;
+}
+
+/* Alineación vertical para la fila del selector superior */
+[data-testid="column"] {
+    display: flex;
+    align-items: center;
+}
+
+/* Ajustes de Selectbox e Inputs superiores */
+[data-testid="stSelectbox"] {
+    width: 100%;
+    margin-top: 0px;
 }
 
 /* Header Dark Bar */
@@ -47,6 +60,7 @@ html, body, [class*="css"] {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    margin-top: 10px;
     margin-bottom: 18px;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
@@ -444,12 +458,12 @@ def get_pl_teams_list():
 
 pl_teams = get_pl_teams_list()
 
-# ── TOP SELECTOR & BOTÓN DE REENTRENAMIENTO ─────────────────────────────────
+# ── TOP SELECTOR & BOTÓN DE REENTRENAMIENTO (Alineación perfecta) ─────────────
 col_brand, col_sel, col_retrain = st.columns([1.2, 2.0, 0.8])
 
 with col_brand:
     st.markdown("""
-    <div style="display:flex; align-items:center; gap:8px; padding:6px 0;">
+    <div style="display:flex; align-items:center; gap:8px; padding-top:4px;">
         <span style="font-size:24px; font-weight:900; color:#0f172a;">⚽ MATCHDAY <span style="color:#2563eb;">IQ</span></span>
         <span class="brand-badge">PREMIER LEAGUE</span>
     </div>
@@ -457,33 +471,36 @@ with col_brand:
 
 with col_sel:
     selected_team = st.selectbox(
-        "🔍 Selecciona un equipo para predecir su próximo partido:",
+        "🔍 Selecciona un equipo:",
         options=pl_teams,
         index=pl_teams.index("Arsenal") if "Arsenal" in pl_teams else 0,
         label_visibility="collapsed"
     )
 
 with col_retrain:
-    if st.button("🔄 Reentrenar Modelo", use_container_width=True, help="Vuelve a leer todos los Excels de data/ y entrena un nuevo modelo con los datos más recientes."):
-        with st.status("🚀 Reentrenando modelo con datos actualizados...", expanded=True) as status:
-            st.write("1. Leyendo archivos Excel en `data/`...")
-            df_hist_new = load_historical_data(DATA_DIR)
-            st.write(f"   Partidos encontrados: **{len(df_hist_new):,}**")
-            
-            st.write("2. Recalculando sistema Elo y features rolling...")
-            df_hist_new, elo_ratings_new, _ = calcular_elo(df_hist_new)
-            df_long_new = build_team_features(df_hist_new)
-            df_h2h_new = build_h2h_features(df_hist_new)
-            df_model_new, le_new, class_names_new = build_model_dataset(df_hist_new, df_long_new, df_h2h_new)
-            
-            st.write("3. Ejecutando GridSearchCV y calibración...")
-            model_new, scaler_new, class_names_new, best_name_new = train_and_save(df_model_new, class_names_new)
-            
-            st.cache_resource.clear()
-            st.cache_data.clear()
-            status.update(label=f"✅ ¡Modelo ({best_name_new}) reentrenado y guardado con éxito!", state="complete", expanded=False)
-            st.success(f"Modelo actualizado con {len(df_hist_new):,} partidos históricos.")
-            st.rerun()
+    retrain_clicked = st.button("🔄 Reentrenar Modelo", use_container_width=True, help="Vuelve a leer los Excels en data/ y actualiza el modelo con datos recientes.")
+
+# Contenedor dedicado de estado para no desplazar ni cortar la barra superior
+if retrain_clicked:
+    with st.status("🚀 Reentrenando modelo con datos actualizados...", expanded=True) as status:
+        st.write("1. Leyendo archivos Excel en `data/`...")
+        df_hist_new = load_historical_data(DATA_DIR)
+        st.write(f"   Partidos encontrados: **{len(df_hist_new):,}**")
+        
+        st.write("2. Recalculando sistema Elo y features rolling...")
+        df_hist_new, elo_ratings_new, _ = calcular_elo(df_hist_new)
+        df_long_new = build_team_features(df_hist_new)
+        df_h2h_new = build_h2h_features(df_hist_new)
+        df_model_new, le_new, class_names_new = build_model_dataset(df_hist_new, df_long_new, df_h2h_new)
+        
+        st.write("3. Ejecutando GridSearchCV y calibración...")
+        model_new, scaler_new, class_names_new, best_name_new = train_and_save(df_model_new, class_names_new)
+        
+        st.cache_resource.clear()
+        st.cache_data.clear()
+        status.update(label=f"✅ ¡Modelo ({best_name_new}) reentrenado y guardado con éxito!", state="complete", expanded=False)
+        st.success(f"Modelo actualizado con {len(df_hist_new):,} partidos históricos.")
+        st.rerun()
 
 # ── API: PRÓXIMO PARTIDO DEL EQUIPO SELECCIONADO ─────────────────────────────
 team_id, team_name_api = api.find_team_id(selected_team)
@@ -496,7 +513,6 @@ if next_match is not None:
     match_time_str = match_date.strftime("%a %d/%m %H:%M UTC")
     is_selected_home = (next_match['home_id'] == team_id)
 else:
-    # Fallback de seguridad
     home_name_api = selected_team
     away_name_api = "Aston Villa" if selected_team != "Aston Villa" else "Arsenal"
     match_date = pd.Timestamp.now() + pd.Timedelta(days=5)
@@ -564,7 +580,7 @@ prob_home = preds['prob_home']
 prob_draw = preds['prob_draw']
 prob_away = preds['prob_away']
 
-# Formas detalladas con metadatos de partidos
+# Formas detalladas con metadatos de partidos (últimos 5 partidos)
 form_h_str, form_h_score, form_h_details = get_team_form_detailed(home_clean, df_long, df_hist, match_date, n=5)
 form_a_str, form_a_score, form_a_details = get_team_form_detailed(away_clean, df_long, df_hist, match_date, n=5)
 
@@ -581,10 +597,6 @@ gf_a = float(snap_a_gen.get('GF_5', 1.5))
 gc_a = float(snap_a_gen.get('GC_5', 1.2))
 dif_gol_a = float(snap_a_gen.get('DifGol_5', 0.0))
 ppg_fuera_a = float(snap_a_ctx.get('PPG_Fuera5', snap_a_gen.get('PPG_5', 1.2)))
-
-# Ventaja de descanso
-ventaja_descanso_h = fatiga_h - fatiga_a
-ventaja_descanso_a = fatiga_a - fatiga_h
 
 # Helper para renderizar badges de forma CON TOOLTIP INTERACTIVO
 def make_form_interactive_html(match_list):
@@ -633,11 +645,10 @@ with col_home:
 <div class="prob-subtext">MODEL PROBABILITY &bull; LOCAL</div>
 {make_stat_box("FORMA (ÚLTIMOS 5)", form_h_str, form_h_score, "fill-green", make_form_interactive_html(form_h_details))}
 {make_stat_box("DÍAS DE DESCANSO", f"{fatiga_h} días", min(fatiga_h / 8.0, 1.0), "fill-green")}
-{make_stat_box("VENTAJA DESCANSO", f"{'+' if ventaja_descanso_h > 0 else ''}{ventaja_descanso_h} días vs rival", max(0.0, min(1.0, (ventaja_descanso_h + 7) / 14.0)), "fill-green")}
-{make_stat_box("RATIO CONVERSIÓN GOLES", f"{gf_h:.2f} GF/partido", min(gf_h / 3.5, 1.0), "fill-green")}
-{make_stat_box("RATIO CONCESIÓN GOLES", f"{gc_h:.2f} GC/partido", max(0.0, 1.0 - (gc_h / 3.0)), "fill-green")}
-{make_stat_box("DIFERENCIAL DE GOLES", f"{'+' if dif_gol_h > 0 else ''}{dif_gol_h:.2f}", max(0.0, min(1.0, (dif_gol_h + 3.0) / 6.0)), "fill-green")}
-{make_stat_box("RENDIMIENTO COMO LOCAL", f"{ppg_casa_h:.2f} PPG Casa", min(ppg_casa_h / 3.0, 1.0), "fill-green")}
+{make_stat_box("Goles por partido en los últimos 5 partidos", f"{gf_h:.2f} GF", min(gf_h / 3.5, 1.0), "fill-green")}
+{make_stat_box("Goles encajados por partido en los últimos 5 partidos", f"{gc_h:.2f} GC", max(0.0, 1.0 - (gc_h / 3.0)), "fill-green")}
+{make_stat_box("diferencial de tiros en sus últimos 5 partidos", f"{'+' if dif_gol_h > 0 else ''}{dif_gol_h:.2f}", max(0.0, min(1.0, (dif_gol_h + 3.0) / 6.0)), "fill-green")}
+{make_stat_box("Promedio de puntos como local en sus últimos 5 partidos", f"{ppg_casa_h:.2f} PPG", min(ppg_casa_h / 3.0, 1.0), "fill-green")}
 </div>"""
     st.markdown(h_html, unsafe_allow_html=True)
 
@@ -646,14 +657,18 @@ with col_home:
 with col_draw:
     empates_pct = (df_hist['Resultado'] == 'D').mean()
     tag_d = 'MOST LIKELY' if prob_draw >= max(prob_home, prob_away) else 'DRAW'
+    
+    # Calcular empates en los últimos 3 partidos H2H
+    n_empates_h2h = int(sum(1 for _, r in h2h_df.iterrows() if r['Resultado'] == 'D')) if len(h2h_df) > 0 else 0
+    
     d_html = f"""<div class="outcome-card">
 <div class="outcome-tag tag-blue">OUTCOME B &bull; {tag_d}</div>
 <div class="outcome-title title-blue">Draw</div>
 <div class="prob-number title-blue">{prob_draw*100:.0f}%</div>
 <div class="prob-subtext">MODEL PROBABILITY</div>
 {make_stat_box("TASA EMPATES HISTÓRICA", f"{empates_pct*100:.1f}%", empates_pct, "fill-blue")}
-{make_stat_box("EQUILIBRIO ELO", f"Δ {abs(vec.get('EloDiff', 0)):.1f} pts", max(0.0, 1.0 - abs(vec.get('EloDiff', 0))/400.0), "fill-blue")}
-{make_stat_box("H2H EMPATES (ÚLTIMOS 3)", f"{int((1.0 - h2h_winrate) * len(h2h_df) if len(h2h_df)>0 else 0)} de {len(h2h_df)}", 0.33 if len(h2h_df)>0 else 0.25, "fill-blue")}
+{make_stat_box("Certeza de las predicciones de ambos equipos", f"Δ {abs(vec.get('EloDiff', 0)):.1f} pts", max(0.0, 1.0 - abs(vec.get('EloDiff', 0))/400.0), "fill-blue")}
+{make_stat_box("número de empates en los últimos 3 partidos", f"{n_empates_h2h} de {len(h2h_df)}", (n_empates_h2h / len(h2h_df)) if len(h2h_df)>0 else 0.25, "fill-blue")}
 <div style="background-color:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:14px; margin-top:24px; text-align:center;">
 <div style="font-size:13px; font-weight:800; color:#1e40af; margin-bottom:4px;">🎯 Marcador más probable: 1 - 1</div>
 <div style="font-size:11px; color:#60a5fa; font-weight:500;">Los empates presentan la mayor dispersión en modelos de Machine Learning.</div>
@@ -672,11 +687,10 @@ with col_away:
 <div class="prob-subtext">MODEL PROBABILITY &bull; VISITANTE</div>
 {make_stat_box("FORMA (ÚLTIMOS 5)", form_a_str, form_a_score, "fill-red", make_form_interactive_html(form_a_details))}
 {make_stat_box("DÍAS DE DESCANSO", f"{fatiga_a} días", min(fatiga_a / 8.0, 1.0), "fill-red")}
-{make_stat_box("VENTAJA DESCANSO", f"{'+' if ventaja_descanso_a > 0 else ''}{ventaja_descanso_a} días vs rival", max(0.0, min(1.0, (ventaja_descanso_a + 7) / 14.0)), "fill-red")}
-{make_stat_box("RATIO CONVERSIÓN GOLES", f"{gf_a:.2f} GF/partido", min(gf_a / 3.5, 1.0), "fill-red")}
-{make_stat_box("RATIO CONCESIÓN GOLES", f"{gc_a:.2f} GC/partido", max(0.0, 1.0 - (gc_a / 3.0)), "fill-red")}
-{make_stat_box("DIFERENCIAL DE GOLES", f"{'+' if dif_gol_a > 0 else ''}{dif_gol_a:.2f}", max(0.0, min(1.0, (dif_gol_a + 3.0) / 6.0)), "fill-red")}
-{make_stat_box("RENDIMIENTO COMO VISITANTE", f"{ppg_fuera_a:.2f} PPG Fuera", min(ppg_fuera_a / 3.0, 1.0), "fill-red")}
+{make_stat_box("Goles por partido en los últimos 5 partidos", f"{gf_a:.2f} GF", min(gf_a / 3.5, 1.0), "fill-red")}
+{make_stat_box("Goles encajados por partido en los últimos 5 partidos", f"{gc_a:.2f} GC", max(0.0, 1.0 - (gc_a / 3.0)), "fill-red")}
+{make_stat_box("diferencial de tiros en sus últimos 5 partidos", f"{'+' if dif_gol_a > 0 else ''}{dif_gol_a:.2f}", max(0.0, min(1.0, (dif_gol_a + 3.0) / 6.0)), "fill-red")}
+{make_stat_box("Promedio de puntos como visitante en sus últimos 5 partidos", f"{ppg_fuera_a:.2f} PPG", min(ppg_fuera_a / 3.0, 1.0), "fill-red")}
 </div>"""
     st.markdown(a_html, unsafe_allow_html=True)
 
@@ -731,15 +745,15 @@ with col_bottom_right:
 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
 <div class="metric-mini">
 <div class="metric-mini-val" style="color:#15803d;">{h2h_winrate*100:.0f}%</div>
-<div class="metric-mini-lbl">Win Rate Local (3 H2H)</div>
+<div class="metric-mini-lbl">Tasa de victorias del local</div>
 </div>
 <div class="metric-mini">
 <div class="metric-mini-val" style="color:{dif_color};">{'+' if h2h_dif > 0 else ''}{h2h_dif:.2f}</div>
-<div class="metric-mini-lbl">Dif_Goles_H2H ({'+L' if h2h_dif >= 0 else '-V'})</div>
+<div class="metric-mini-lbl">Promedio goles marcados menos encajados del local</div>
 </div>
 </div>
 <div style="font-size:11px; color:#64748b; line-height:1.4; margin-bottom:10px; background:#f8fafc; padding:8px 10px; border-radius:6px; border:1px solid #f1f5f9;">
-💡 <b>Interpretación H2H:</b> Un valor positivo en <code>Dif_Goles_H2H</code> indica que {home_clean} marca más goles en sus duelos directos; uno negativo favorece a {away_clean}.
+💡 <b>Interpretación H2H:</b> Un valor positivo en el promedio indica que {home_clean} marca más goles en sus duelos directos; uno negativo favorece a {away_clean}.
 </div>
 <div style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:4px;">HISTORIAL DIRECTO:</div>
 {h2h_rows_html}
